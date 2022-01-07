@@ -2,7 +2,13 @@
 
 PyTorch Lightning implementation of [Interactive Reconstruction of Monte Carlo Image Sequences using a Recurrent Denoising Autoencoder](https://research.nvidia.com/publication/interactive-reconstruction-monte-carlo-image-sequences-using-recurrent-denoising)(2017). This repository is not official implementation. Also, some features in the original paper have not implemented yet.
 
+## Dataset
+
 ## Prerequisites
+
+- libopenexr-dev library
+- openexr python package
+    - `pip install openexr` or, `conda install openexr-python`
 
 ## Usage
 

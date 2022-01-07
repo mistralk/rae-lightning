@@ -1,0 +1,5 @@
+pytorch-lightning==1.5.8
+matplotlib==3.5.1
+click==8.0.3
+OpenEXR==1.3.2
+imath==0.0.2
