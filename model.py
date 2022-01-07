@@ -7,8 +7,9 @@ from typing import List, Optional, Sequence, Tuple, Any, Callable
 
 
 class RAEModel(pl.LightningModule):
-    def __init__(self, in_channels, sequence_length):
+    def __init__(self, num_aux_channels, sequence_length):
         super().__init__()
+        in_channels = 3 + num_aux_channels # RGB + aux
         self.model = RAE(in_channels=in_channels)
         self.loss_weights = [0.8, 0.1, 0.1]
         self.temporal_weights = [0.011, 0.044, 0.135, 0.325, 0.607, 0.882, 1.0]

@@ -5,17 +5,17 @@ import numpy as np
 import pathlib
 from utils import *
 
+
 class RAEDataModule(LightningDataModule):
 
     def __init__(self, batch_size=16):
         super().__init__()
         self.batch_size = batch_size
 
-    def build(self, sequence_length):
+    def build(self, dataset_dir, aux_features, sequence_length):
         self.sequence_length = sequence_length
 
-        dataset = RAEDataset('/dataset', sequence_length)
-        self.test = RAEDataset('/dataset', sequence_length)
+        dataset = RAEDataset(dataset_dir, aux_features, sequence_length)
         
         num_train = int(len(dataset) * 0.9)
         num_test = len(dataset) - num_train
@@ -39,8 +39,9 @@ class RAEDataModule(LightningDataModule):
 
 class RAEDataset(Dataset):
 
-    def __init__(self, root, sequence_length=1):
+    def __init__(self, root, aux_features, sequence_length):
         self.root = pathlib.Path(root)
+        self.aux_features = aux_features
 
         scene_paths = list(self.root.glob('*'))
         self.scenes = [str(path).split('/')[-1] for path in scene_paths]
@@ -77,7 +78,7 @@ class RAEDataset(Dataset):
                 sample_img.append(exr_to_numpy(path + noise_instance, channel_name))
                 sample_target.append(exr_to_numpy(path + '/target.exr', channel_name))
 
-            for channel_name in ['depth.Z', 'normal.R', 'normal.G', 'normal.B']:
+            for channel_name in self.aux_features:
                 sample_img.append(exr_to_numpy(path + '/aux.exr', channel_name))
 
             for channel_name in ['albedo.R', 'albedo.G', 'albedo.B']:
@@ -91,6 +92,7 @@ class RAEDataset(Dataset):
             data['target_sequence'].append(sample_target)
             data['albedo_sequence'].append(sample_albedo)
 
+        print_srgb(data['img_sequence'][0])
         return data
 
     def __len__(self):

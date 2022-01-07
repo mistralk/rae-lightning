@@ -11,9 +11,14 @@ https://cgcooke.github.io/Blog/computer%20vision/blender/2020/10/30/Training-Dat
 def encode_to_SRGB(v):
     return(np.where(v<=0.0031308,v * 12.92, 1.055*(v**(1.0/2.4)) - 0.055))
 
+def correct_gamma(data):
+    return data**(1.0/2.2)
 
-def print_srgb(channels):
-    srgb = np.dstack(channels)
+def print_srgb(data):
+    srgb = data[0:3] # get RGB from tensor
+    srgb = srgb.transpose((1, 2, 0))
+    srgb = correct_gamma(srgb)
+
     fig = plt.figure()
     plt.gca().axes.xaxis.set_visible(False)
     plt.gca().axes.yaxis.set_visible(False)
