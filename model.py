@@ -26,7 +26,7 @@ class RAEModel(pl.LightningModule):
 
         # feed-forward the first frame of each sequence
         with torch.no_grad():
-            denoised, hidden = self.forward(x[0].detach(), None)
+            denoised, hidden = self.forward(x[0], None)
         sequence_loss = torch.zeros(self.sequence_length)
         sequence_loss[0] = self.loss(denoised, target[0]) * self.temporal_weights[0]
 
