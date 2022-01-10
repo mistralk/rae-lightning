@@ -35,5 +35,12 @@ def train(
     print('Training completes!')
 
 
+def visualize_reconstruction(model, sequence):
+    model.eval()
+    with torch.no_grad():
+        denoised = model(sequence)
+    print_srgb(denoised)
+
+
 if __name__ == '__main__':
     train()

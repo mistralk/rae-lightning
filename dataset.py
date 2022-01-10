@@ -61,8 +61,7 @@ class RAEDataset(Dataset):
     # get a sequence [idx, idx + length)
     def __getitem__(self, idx):
         data = {'img_sequence': [],
-                'target_sequence': [],
-                'albedo_sequence': []}
+                'target_sequence': []}
     
         start_frame = int(self.data[idx].parent.name.split('-')[-1])
         noise_instance = '/' + self.data[idx].name
@@ -72,7 +71,7 @@ class RAEDataset(Dataset):
 
             sample_img = []
             sample_target = []
-            sample_albedo = [] # for final rendering
+            # sample_albedo = []
             
             for channel_name in ['R', 'G', 'B']:
                 sample_img.append(exr_to_numpy(path + noise_instance, channel_name))
@@ -81,18 +80,16 @@ class RAEDataset(Dataset):
             for channel_name in self.aux_features:
                 sample_img.append(exr_to_numpy(path + '/aux.exr', channel_name))
 
-            for channel_name in ['albedo.R', 'albedo.G', 'albedo.B']:
-                sample_albedo.append(exr_to_numpy(path + '/aux.exr', channel_name))
+            # for channel_name in ['albedo.R', 'albedo.G', 'albedo.B']:
+            #     sample_albedo.append(exr_to_numpy(path + '/aux.exr', channel_name))
 
-            # TODO: albedo demodulation from input RGB
             sample_img = np.stack(sample_img)
             sample_target = np.stack(sample_target)
 
             data['img_sequence'].append(sample_img)
             data['target_sequence'].append(sample_target)
-            data['albedo_sequence'].append(sample_albedo)
+            # data['albedo_sequence'].append(sample_albedo)
 
-        print_srgb(data['img_sequence'][0])
         return data
 
     def __len__(self):

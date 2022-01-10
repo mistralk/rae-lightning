@@ -7,6 +7,7 @@ from typing import List, Optional, Sequence, Tuple, Any, Callable
 
 
 class RAEModel(pl.LightningModule):
+
     def __init__(self, num_aux_channels, sequence_length):
         super().__init__()
         in_channels = 3 + num_aux_channels # RGB + aux
@@ -22,14 +23,14 @@ class RAEModel(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x = batch['img_sequence']
         target = batch['target_sequence']
-        # albedo = batch['albedo_sequence']
 
         # feed-forward the first frame of each sequence
-        denoised, hidden = self.forward(x[0], None)
+        with torch.no_grad():
+            denoised, hidden = self.forward(x[0].detach(), None)
         sequence_loss = torch.zeros(self.sequence_length)
         sequence_loss[0] = self.loss(denoised, target[0]) * self.temporal_weights[0]
 
-        # feed-forward later frames of each sequence
+        # later frames of each sequence
         for i in range(1, self.sequence_length):
             denoised, hidden = self.forward(x[i], hidden)
             sequence_loss[i] = self.loss(denoised, target[i]) * self.temporal_weights[i]
@@ -106,7 +107,7 @@ class RAE(nn.Module):
             print('Encoding layer_{} input: {}'.format(i, str(x.shape)))
             x = conv(x)
             if i > 0:
-                x = self.rcnn[i-1](x, h[i-1] if h != None else x)
+                x = self.rcnn[i-1](x, h[i-1] if h != None else None)
                 connections.append(x)
 
                 if i < len(self.encoder_conv) - 1:
@@ -173,6 +174,8 @@ class RCNNBlock(nn.Module):
     
     def forward(self, input, hidden_state):
         x = self.conv1(input)
+        if hidden_state is None:
+            hidden_state = torch.zeros_like(input, requires_grad=False)
         x = torch.concat((x, hidden_state), axis=1)
         x = self.conv2(x)
         x = self.conv3(x)
