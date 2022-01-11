@@ -3,26 +3,33 @@ from torch.utils.data import Dataset, DataLoader, random_split
 from pytorch_lightning import LightningDataModule
 import numpy as np
 import pathlib
+from typing import Optional
 from utils import *
 
 
 class RAEDataModule(LightningDataModule):
 
-    def __init__(self, batch_size=16):
+    def __init__(self, data_dir, aux_features, seq_length, batch_size=16):
         super().__init__()
+        self.data_dir = data_dir
+        self.aux_features = aux_features
+        self.seq_length = seq_length
         self.batch_size = batch_size
 
-    def build(self, dataset_dir, aux_features, sequence_length):
-        self.sequence_length = sequence_length
+    def setup(self, stage: Optional[str]=None):
+        if stage in (None, 'fit'):
+            dataset = RAEDataset(self.data_dir, self.aux_features, self.seq_length)
+            num_train = int(len(dataset) * 0.9)
+            num_valid = len(dataset) - num_train
+            self.train, self.val = random_split(dataset, [num_train, num_valid])
 
-        dataset = RAEDataset(dataset_dir, aux_features, sequence_length)
+        if stage in (None, 'test'):
+            self.test = RAEDataset(self.data_dir, self.aux_features, self.seq_length)
         
-        num_train = int(len(dataset) * 0.9)
-        num_test = len(dataset) - num_train
-        assert num_train + num_test == len(dataset)
+        if stage in (None, 'predict'):
+            self.test = RAEDataset(self.data_dir, self.aux_features, self.seq_length)
 
-        #self.train, self.val = random_split(dataset, [num_train, num_test])
-        self.train = dataset
+        print('Dataset setup completes.')
 
     def train_dataloader(self):
         return DataLoader(self.train, batch_size=self.batch_size)
@@ -34,7 +41,7 @@ class RAEDataModule(LightningDataModule):
         return DataLoader(self.test, batch_size=self.batch_size)
 
     def predict_dataloader(self):
-        return DataLoader(self.test, batch_size=self.batch_size)
+        return DataLoader(self.predict, batch_size=self.batch_size)
 
 
 class RAEDataset(Dataset):

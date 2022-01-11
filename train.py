@@ -24,15 +24,14 @@ def train(
 ):
     aux_features = ['depth.Z', 'normal.R', 'normal.G', 'normal.B']
 
-    datamodule = RAEDataModule()
-    datamodule.build(data_path, aux_features, seq_length)
-
+    datamodule = RAEDataModule(data_path, aux_features, seq_length)
     model = RAEModel(num_aux_channels=len(aux_features), sequence_length=seq_length)
 
     trainer = Trainer(gpus=1, max_epochs=1)
     trainer.fit(model, datamodule)
-
     print('Training completes!')
+
+    trainer.test(ckpt_path='best', datamodule=datamodule)
 
 
 def visualize_reconstruction(model, sequence):

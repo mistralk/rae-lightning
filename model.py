@@ -38,6 +38,27 @@ class RAEModel(pl.LightningModule):
         loss = sequence_loss.mean()
         return loss
     
+    def test_step(self, batch, batch_idx):
+        self._shared_eval(batch, batch_idx, 'test')
+
+    def validation_step(self, batch, batch_idx):
+        self._shared_eval(batch, batch_idx, 'val')
+
+    def _shared_eval(self, batch, batch_idx, prefix):
+        x = batch['img_sequence']
+        target = batch['target_sequence']
+
+        denoised, hidden = self.forward(x[0], None)
+        sequence_loss = torch.zeros(self.sequence_length)
+        sequence_loss[0] = self.loss(denoised, target[0]) * self.temporal_weights[0]
+
+        for i in range(1, self.sequence_length):
+            denoised, hidden = self.forward(x[i], hidden)
+            sequence_loss[i] = self.loss(denoised, target[i]) * self.temporal_weights[i]
+        
+        loss = sequence_loss.mean()
+        self.log(f'{prefix}_loss', loss)
+    
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=0.001, betas=(0.9, 0.99))
 
