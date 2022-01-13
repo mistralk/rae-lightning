@@ -15,6 +15,8 @@ def correct_gamma(data):
     return data**(1.0/2.2)
 
 def print_srgb(data):
+    data = data.numpy()
+    
     srgb = data[0:3] # get RGB from tensor
     srgb = srgb.transpose((1, 2, 0))
     srgb = correct_gamma(srgb)

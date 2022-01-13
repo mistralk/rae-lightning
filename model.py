@@ -11,10 +11,21 @@ class RAEModel(pl.LightningModule):
     def __init__(self, num_aux_channels, sequence_length):
         super().__init__()
         in_channels = 3 + num_aux_channels # RGB + aux
-        self.model = RAE(in_channels=in_channels)
+        
+        #self.model = RAE(in_channels, [32,32,43,57,57], [43,43,32,32,64])
+        #self.model = RAE(in_channels, [32,32,43,57,76,101,135,135], [101,101,76,76,57,57,43,43,32,32,128,64])
+        self.model = RAE(in_channels)
         self.loss_weights = [0.8, 0.1, 0.1]
         self.temporal_weights = [0.011, 0.044, 0.135, 0.325, 0.607, 0.882, 1.0]
         self.sequence_length = sequence_length
+
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters(), lr=0.001, betas=(0.9, 0.99))
+
+    def loss(self, denoised, target):
+        loss_s = torch.functional.F.l1_loss(denoised, target)
+        loss = self.loss_weights[0] * loss_s # spatial-only loss
+        return loss
     
     def forward(self, I, h):
         x_hat, hidden = self.model.forward(I, h)
@@ -58,14 +69,6 @@ class RAEModel(pl.LightningModule):
         
         loss = sequence_loss.mean()
         self.log(f'{prefix}_loss', loss)
-    
-    def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=0.001, betas=(0.9, 0.99))
-
-    def loss(self, denoised, target):
-        loss_s = torch.functional.F.l1_loss(denoised, target)
-        loss = self.loss_weights[0] * loss_s # spatial-only loss
-        return loss
 
 
 class RAE(nn.Module):
@@ -197,7 +200,7 @@ class RCNNBlock(nn.Module):
         x = self.conv1(input)
         if hidden_state is None:
             hidden_state = torch.zeros_like(input, requires_grad=False)
-        x = torch.concat((x, hidden_state), axis=1)
+        x = torch.concat((x, hidden_state), dim=1)
         x = self.conv2(x)
         x = self.conv3(x)
         return x

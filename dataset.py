@@ -1,6 +1,8 @@
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 from pytorch_lightning import LightningDataModule
+from torchvision import transforms
+import torchvision.transforms.functional as TF
 import numpy as np
 import pathlib
 from typing import Optional
@@ -92,6 +94,12 @@ class RAEDataset(Dataset):
 
             sample_img = np.stack(sample_img)
             sample_target = np.stack(sample_target)
+
+            sample_img = torch.from_numpy(sample_img)
+            sample_target = torch.from_numpy(sample_target)
+            i, j, h, w = transforms.RandomCrop.get_params(sample_img, (128, 128))
+            sample_img = TF.crop(sample_img, i, j, h, w)
+            sample_target = TF.crop(sample_target, i, j, h, w)
 
             data['img_sequence'].append(sample_img)
             data['target_sequence'].append(sample_target)
