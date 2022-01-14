@@ -46,6 +46,8 @@ class RAEModel(pl.LightningModule):
             denoised, hidden = self.forward(x[i], hidden)
             sequence_loss[i] = self.loss(denoised, target[i]) * self.temporal_weights[i]
 
+        #print_srgb(denoised[0].detach().cpu())
+
         loss = sequence_loss.mean()
         return loss
     

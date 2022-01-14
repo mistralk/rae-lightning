@@ -24,10 +24,10 @@ def train(
 ):
     aux_features = ['depth.Z', 'normal.R', 'normal.G', 'normal.B']
 
-    datamodule = RAEDataModule(data_path, aux_features, seq_length)
+    datamodule = RAEDataModule(data_path, aux_features, seq_length, batch_size=32)
     model = RAEModel(num_aux_channels=len(aux_features), sequence_length=seq_length)
 
-    trainer = Trainer(gpus=1, max_epochs=1)
+    trainer = Trainer(gpus=1, max_epochs=1, log_every_n_steps=1)
     trainer.fit(model, datamodule)
     print('Training completes!')
 

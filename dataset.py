@@ -24,6 +24,7 @@ class RAEDataModule(LightningDataModule):
             num_train = int(len(dataset) * 0.9)
             num_valid = len(dataset) - num_train
             self.train, self.val = random_split(dataset, [num_train, num_valid])
+            #self.train = dataset
 
         if stage in (None, 'test'):
             self.test = RAEDataset(self.data_dir, self.aux_features, self.seq_length)
@@ -34,16 +35,16 @@ class RAEDataModule(LightningDataModule):
         print('Dataset setup completes.')
 
     def train_dataloader(self):
-        return DataLoader(self.train, batch_size=self.batch_size)
+        return DataLoader(self.train, batch_size=self.batch_size, num_workers=24)
 
     def val_dataloader(self):
-        return DataLoader(self.val, batch_size=self.batch_size)
+        return DataLoader(self.val, batch_size=self.batch_size, num_workers=24)
 
     def test_dataloader(self):
-        return DataLoader(self.test, batch_size=self.batch_size)
+        return DataLoader(self.test, batch_size=self.batch_size, num_workers=24)
 
     def predict_dataloader(self):
-        return DataLoader(self.predict, batch_size=self.batch_size)
+        return DataLoader(self.predict, batch_size=self.batch_size, num_workers=24)
 
 
 class RAEDataset(Dataset):
@@ -54,56 +55,41 @@ class RAEDataset(Dataset):
 
         scene_paths = list(self.root.glob('*'))
         self.scenes = [str(path).split('/')[-1] for path in scene_paths]
-        self.frames_per_scene = 2 # would be 1000
+        self.frames_per_scene = 50
         self.num_noisy_image = 5
+        self.sequence_length = sequence_length
+        self.channels = ['R', 'G', 'B'] + self.aux_features
 
         self.data = []
         for scene in self.scenes:
             for frame_i in range(self.frames_per_scene - sequence_length + 1):
                 frame_name = 'frame-' + str(frame_i).rjust(4, '0')
                 path = self.root/scene/frame_name
-                for noise_i in range(self.num_noisy_image):
-                    self.data.append(path/('noisy-' + str(noise_i) + '.exr'))
-
-        self.sequence_length = sequence_length
+                self.data.append(path)
     
     # get a sequence [idx, idx + length)
     def __getitem__(self, idx):
         data = {'img_sequence': [],
                 'target_sequence': []}
     
-        start_frame = int(self.data[idx].parent.name.split('-')[-1])
-        noise_instance = '/' + self.data[idx].name
+        start_frame = int(self.data[idx].name.split('-')[-1])
+        noise_frame_k = np.random.randint(0, self.num_noisy_image)
         
         for i in range(start_frame, start_frame + self.sequence_length):
-            path = str(self.data[idx].parent.parent) + '/frame-' + str(i).rjust(4, '0')
+            path = f'{self.data[idx].parent}/frame-{str(i).rjust(4, "0")}'
 
-            sample_img = []
-            sample_target = []
-            # sample_albedo = []
+            sample_img = exr_to_numpy(f'{path}/noisy-{noise_frame_k}.exr', self.channels)
+            sample_target = exr_to_numpy(f'{path}/target.exr', self.channels)[0:3] # RGB only.
             
-            for channel_name in ['R', 'G', 'B']:
-                sample_img.append(exr_to_numpy(path + noise_instance, channel_name))
-                sample_target.append(exr_to_numpy(path + '/target.exr', channel_name))
-
-            for channel_name in self.aux_features:
-                sample_img.append(exr_to_numpy(path + '/aux.exr', channel_name))
-
-            # for channel_name in ['albedo.R', 'albedo.G', 'albedo.B']:
-            #     sample_albedo.append(exr_to_numpy(path + '/aux.exr', channel_name))
-
-            sample_img = np.stack(sample_img)
-            sample_target = np.stack(sample_target)
-
             sample_img = torch.from_numpy(sample_img)
             sample_target = torch.from_numpy(sample_target)
-            i, j, h, w = transforms.RandomCrop.get_params(sample_img, (128, 128))
+
+            i, j, h, w = transforms.RandomCrop.get_params(sample_img, (32, 32))
             sample_img = TF.crop(sample_img, i, j, h, w)
             sample_target = TF.crop(sample_target, i, j, h, w)
 
             data['img_sequence'].append(sample_img)
             data['target_sequence'].append(sample_target)
-            # data['albedo_sequence'].append(sample_albedo)
 
         return data
 

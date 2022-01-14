@@ -4,7 +4,7 @@ import Imath
 import OpenEXR
 
 """
-EXR proceessing code is from 
+EXR proceessing code is adapted from 
 https://cgcooke.github.io/Blog/computer%20vision/blender/2020/10/30/Training-Data-From-OpenEXR.html
 """
 
@@ -27,14 +27,16 @@ def print_srgb(data):
     plt.imshow(srgb)
     plt.show()
 
-
-def exr_to_numpy(exr_path, channel_name):
+def exr_to_numpy(exr_path, channels):
     img = OpenEXR.InputFile(str(exr_path))
     dw = img.header()['dataWindow']
     size = (dw.max.x - dw.min.x + 1, dw.max.y - dw.min.y + 1)
 
     float_type = Imath.PixelType(Imath.PixelType.FLOAT)
-    channel_str = img.channel(channel_name, float_type)
-    channel = np.frombuffer(channel_str, dtype=np.float32).reshape(size[1], -1)
+    channels_str = img.channels(channels, float_type)
+    
+    out_channels = []
+    for channel_str in channels_str:
+        out_channels.append(np.frombuffer(channel_str, dtype=np.float32).reshape(size[1], -1))
 
-    return channel
+    return np.stack(out_channels)
