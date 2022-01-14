@@ -27,7 +27,7 @@ class RAEModel(pl.LightningModule):
         loss = self.loss_weights[0] * loss_s # spatial-only loss
         return loss
     
-    def forward(self, I, h):
+    def forward(self, I, h=None):
         x_hat, hidden = self.model.forward(I, h)
         return x_hat, hidden
     
@@ -130,7 +130,6 @@ class RAE(nn.Module):
         x = I
 
         for i, conv in enumerate(self.encoder_conv):
-            print('Encoding layer_{} input: {}'.format(i, str(x.shape)))
             x = conv(x)
             if i > 0:
                 x = self.rcnn[i-1](x, h[i-1] if h != None else None)
@@ -138,9 +137,6 @@ class RAE(nn.Module):
 
                 if i < len(self.encoder_conv) - 1:
                     x = self.subsample(x)
-            print('Encoding layer_{} output: {}'.format(i, str(x.shape)))
-        
-        print('-----')
         
         return x, connections
 
@@ -153,14 +149,10 @@ class RAE(nn.Module):
             x = self.upsample(x)
             x = torch.concat((x, connections[i//2]), axis=1)
             x = self.decoder_conv[i](x)
-            print('Decoding layer_{} output: {}'.format(i, str(x.shape)))
             if i + 1 < len(self.decoder_conv):
                 x = self.decoder_conv[i+1](x)
-            print('Decoding layer_{} output: {}'.format(i+1, str(x.shape)))
 
         x = self.output(x)
-        print('-----')
-        print('Output shape: {}'.format(str(x.shape)))
         
         return x
     

@@ -40,3 +40,17 @@ def exr_to_numpy(exr_path, channels):
         out_channels.append(np.frombuffer(channel_str, dtype=np.float32).reshape(size[1], -1))
 
     return np.stack(out_channels)
+
+def exr_to_dict(exr_path, channels):
+    img = OpenEXR.InputFile(str(exr_path))
+    dw = img.header()['dataWindow']
+    size = (dw.max.x - dw.min.x + 1, dw.max.y - dw.min.y + 1)
+
+    float_type = Imath.PixelType(Imath.PixelType.FLOAT)
+    channels_str = img.channels(channels, float_type)
+    
+    out = {}
+    for channel_name, channel_str in zip(channels, channels_str):
+        out[channel_name] = np.frombuffer(channel_str, dtype=np.float32).reshape(size[1], -1)
+
+    return out

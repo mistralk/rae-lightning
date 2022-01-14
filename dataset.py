@@ -70,7 +70,11 @@ class RAEDataset(Dataset):
     # get a sequence [idx, idx + length)
     def __getitem__(self, idx):
         data = {'img_sequence': [],
-                'target_sequence': []}
+                'target_sequence': [],
+                'img_albedo': []
+                }
+
+        albedos = ['albedo.R', 'albedo.G', 'albedo.B']
     
         start_frame = int(self.data[idx].name.split('-')[-1])
         noise_frame_k = np.random.randint(0, self.num_noisy_image)
@@ -78,18 +82,37 @@ class RAEDataset(Dataset):
         for i in range(start_frame, start_frame + self.sequence_length):
             path = f'{self.data[idx].parent}/frame-{str(i).rjust(4, "0")}'
 
-            sample_img = exr_to_numpy(f'{path}/noisy-{noise_frame_k}.exr', self.channels)
-            sample_target = exr_to_numpy(f'{path}/target.exr', self.channels)[0:3] # RGB only.
+            sample_img = exr_to_dict(f'{path}/noisy-{noise_frame_k}.exr', self.channels + albedos)
+            if 'depth.Z' in sample_img:
+                _numer = sample_img['depth.Z'] - sample_img['depth.Z'].min()
+                _denom = sample_img['depth.Z'].max() - sample_img['depth.Z'].min()
+                if _denom == 0:
+                    sample_img['depth.Z'] = 0
+                else:
+                    sample_img['depth.Z'] = _numer / _denom
+            img_albedo = np.stack([sample_img[channel] for channel in albedos])
+            sample_img['R'] = sample_img['R'] / (img_albedo[0] + 0.00316)
+            sample_img['G'] = sample_img['G'] / (img_albedo[1] + 0.00316)
+            sample_img['B'] = sample_img['B'] / (img_albedo[2] + 0.00316)
+            sample_img = np.stack([sample_img[channel] for channel in self.channels])
+
+            sample_target = exr_to_dict(f'{path}/target.exr', self.channels + albedos)
+            target_albedo = np.stack([sample_target[channel] for channel in albedos])
+            sample_target['R'] = sample_target['R'] / (target_albedo[0] + 0.00316)
+            sample_target['G'] = sample_target['G'] / (target_albedo[1] + 0.00316)
+            sample_target['B'] = sample_target['B'] / (target_albedo[2] + 0.00316)
+            sample_target = np.stack([sample_target[channel] for channel in 'RGB'])
             
             sample_img = torch.from_numpy(sample_img)
             sample_target = torch.from_numpy(sample_target)
 
-            i, j, h, w = transforms.RandomCrop.get_params(sample_img, (32, 32))
+            i, j, h, w = transforms.RandomCrop.get_params(sample_img, (128, 128))
             sample_img = TF.crop(sample_img, i, j, h, w)
             sample_target = TF.crop(sample_target, i, j, h, w)
 
             data['img_sequence'].append(sample_img)
             data['target_sequence'].append(sample_target)
+            data['img_albedo'].append(img_albedo)
 
         return data
 

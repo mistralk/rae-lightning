@@ -5,7 +5,7 @@ from dataset import *
 from utils import *
 
 from pytorch_lightning import Trainer
-
+# import torchinfo
 
 @click.command()
 @click.argument(
@@ -27,7 +27,9 @@ def train(
     datamodule = RAEDataModule(data_path, aux_features, seq_length, batch_size=32)
     model = RAEModel(num_aux_channels=len(aux_features), sequence_length=seq_length)
 
-    trainer = Trainer(gpus=1, max_epochs=1, log_every_n_steps=1)
+    #torchinfo.summary(model, (16, 3 + len(aux_features), 128, 128))
+
+    trainer = Trainer(gpus=1, max_epochs=5, log_every_n_steps=1)
     trainer.fit(model, datamodule)
     print('Training completes!')
 
