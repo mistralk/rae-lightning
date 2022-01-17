@@ -5,6 +5,7 @@ from dataset import *
 from utils import *
 
 from pytorch_lightning import Trainer
+from pytorch_lightning.loggers import TensorBoardLogger
 # import torchinfo
 
 @click.command()
@@ -15,7 +16,7 @@ from pytorch_lightning import Trainer
 @click.option(
     '--seq_length',
     type=int,
-    default=2,
+    default=7,
     help='Length of consecutive frames to be used during training'
 )
 def train(
@@ -24,12 +25,14 @@ def train(
 ):
     aux_features = ['depth.Z', 'normal.R', 'normal.G', 'normal.B']
 
-    datamodule = RAEDataModule(data_path, aux_features, seq_length, batch_size=32)
+    datamodule = RAEDataModule(data_path, aux_features, seq_length, batch_size=10)
     model = RAEModel(num_aux_channels=len(aux_features), sequence_length=seq_length)
 
     #torchinfo.summary(model, (16, 3 + len(aux_features), 128, 128))
 
-    trainer = Trainer(gpus=1, max_epochs=5, log_every_n_steps=1)
+    logger = TensorBoardLogger('tb_logs', name='rae')
+    trainer = Trainer(gpus=1, max_epochs=30, log_every_n_steps=1, logger=logger)
+    #trainer.fit(model, datamodule, ckpt_path='tb_logs/rae/version_62/checkpoints/epoch=29-step=659.ckpt')
     trainer.fit(model, datamodule)
     print('Training completes!')
 

@@ -24,10 +24,10 @@ class RAEDataModule(LightningDataModule):
             num_train = int(len(dataset) * 0.9)
             num_valid = len(dataset) - num_train
             self.train, self.val = random_split(dataset, [num_train, num_valid])
-            #self.train = dataset
 
         if stage in (None, 'test'):
-            self.test = RAEDataset(self.data_dir, self.aux_features, self.seq_length)
+            self.test_dir = self.data_dir
+            self.test = RAEDataset(self.test_dir, self.aux_features, self.seq_length)
         
         if stage in (None, 'predict'):
             self.test = RAEDataset(self.data_dir, self.aux_features, self.seq_length)
@@ -55,7 +55,7 @@ class RAEDataset(Dataset):
 
         scene_paths = list(self.root.glob('*'))
         self.scenes = [str(path).split('/')[-1] for path in scene_paths]
-        self.frames_per_scene = 50
+        self.frames_per_scene = 250
         self.num_noisy_image = 5
         self.sequence_length = sequence_length
         self.channels = ['R', 'G', 'B'] + self.aux_features
@@ -70,11 +70,10 @@ class RAEDataset(Dataset):
     # get a sequence [idx, idx + length)
     def __getitem__(self, idx):
         data = {'img_sequence': [],
-                'target_sequence': [],
-                'img_albedo': []
+                'target_sequence': []
                 }
 
-        albedos = ['albedo.R', 'albedo.G', 'albedo.B']
+        # albedos = ['albedo.R', 'albedo.G', 'albedo.B']
     
         start_frame = int(self.data[idx].name.split('-')[-1])
         noise_frame_k = np.random.randint(0, self.num_noisy_image)
@@ -82,7 +81,7 @@ class RAEDataset(Dataset):
         for i in range(start_frame, start_frame + self.sequence_length):
             path = f'{self.data[idx].parent}/frame-{str(i).rjust(4, "0")}'
 
-            sample_img = exr_to_dict(f'{path}/noisy-{noise_frame_k}.exr', self.channels + albedos)
+            sample_img = exr_to_dict(f'{path}/noisy-{noise_frame_k}.exr', self.channels)
             if 'depth.Z' in sample_img:
                 _numer = sample_img['depth.Z'] - sample_img['depth.Z'].min()
                 _denom = sample_img['depth.Z'].max() - sample_img['depth.Z'].min()
@@ -90,17 +89,17 @@ class RAEDataset(Dataset):
                     sample_img['depth.Z'] = 0
                 else:
                     sample_img['depth.Z'] = _numer / _denom
-            img_albedo = np.stack([sample_img[channel] for channel in albedos])
-            sample_img['R'] = sample_img['R'] / (img_albedo[0] + 0.00316)
-            sample_img['G'] = sample_img['G'] / (img_albedo[1] + 0.00316)
-            sample_img['B'] = sample_img['B'] / (img_albedo[2] + 0.00316)
+            #img_albedo = np.stack([sample_img[channel] for channel in albedos])
+            #sample_img['R'] = sample_img['R'] / (img_albedo[0] + 0.00316)
+            #sample_img['G'] = sample_img['G'] / (img_albedo[1] + 0.00316)
+            #sample_img['B'] = sample_img['B'] / (img_albedo[2] + 0.00316)
             sample_img = np.stack([sample_img[channel] for channel in self.channels])
 
-            sample_target = exr_to_dict(f'{path}/target.exr', self.channels + albedos)
-            target_albedo = np.stack([sample_target[channel] for channel in albedos])
-            sample_target['R'] = sample_target['R'] / (target_albedo[0] + 0.00316)
-            sample_target['G'] = sample_target['G'] / (target_albedo[1] + 0.00316)
-            sample_target['B'] = sample_target['B'] / (target_albedo[2] + 0.00316)
+            sample_target = exr_to_dict(f'{path}/target.exr', self.channels)
+            #target_albedo = np.stack([sample_target[channel] for channel in albedos])
+            #sample_target['R'] = sample_target['R'] / (target_albedo[0] + 0.00316)
+            #sample_target['G'] = sample_target['G'] / (target_albedo[1] + 0.00316)
+            #sample_target['B'] = sample_target['B'] / (target_albedo[2] + 0.00316)
             sample_target = np.stack([sample_target[channel] for channel in 'RGB'])
             
             sample_img = torch.from_numpy(sample_img)
@@ -112,7 +111,7 @@ class RAEDataset(Dataset):
 
             data['img_sequence'].append(sample_img)
             data['target_sequence'].append(sample_target)
-            data['img_albedo'].append(img_albedo)
+            #data['img_albedo'].append(img_albedo)
 
         return data
 

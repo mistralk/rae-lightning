@@ -8,11 +8,33 @@ EXR proceessing code is adapted from
 https://cgcooke.github.io/Blog/computer%20vision/blender/2020/10/30/Training-Data-From-OpenEXR.html
 """
 
-def encode_to_SRGB(v):
-    return(np.where(v<=0.0031308,v * 12.92, 1.055*(v**(1.0/2.4)) - 0.055))
 
+def hdr_normalize(v):
+    darkest = v.min()
+    lighest = v.max()
+    v = v - darkest
+    scale = 1.0 / (lighest - darkest)
+    return v * scale
+
+def encode_to_SRGB(v):
+    return np.where(v<=0.0031308,v * 12.92, 1.055*(v**(1.0/2.4)) - 0.055)
+    
 def correct_gamma(data):
-    return data**(1.0/2.2)
+    return np.power(data, (1.0/2.2))
+
+def numpy_to_srgb(data):
+    #srgb = encode_to_SRGB(data[0:3])
+    srgb = data
+    srgb = srgb.transpose((1, 2, 0))
+    srgb = correct_gamma(srgb)
+
+    plt.gca().axes.xaxis.set_visible(False)
+    plt.gca().axes.yaxis.set_visible(False)
+    plt.imshow(srgb)
+
+    print(srgb.shape)
+
+    return srgb
 
 def print_srgb(data):
     data = data.numpy()
