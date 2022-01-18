@@ -136,7 +136,7 @@ class RAEModel(pl.LightningModule):
         #ssim_loss = ssim(torch.tensor(hdr_normalize(recons[0].cpu())), 
         #                 torch.tensor(hdr_normalize(target[0].cpu())))
         #self.log(f'{prefix}_SSIM', ssim_loss)
-        
+
         grid_recon = torchvision.utils.make_grid(denoised)
         grid_input = torchvision.utils.make_grid(x[-1][:,:3,:])
         grid_target = torchvision.utils.make_grid(target[-1])
@@ -167,7 +167,7 @@ class RAE(nn.Module):
             self.encoder_conv.append(nn.Sequential(
                                      nn.Conv2d(in_channels, out_channels=h_dim, 
                                                kernel_size=3, padding='same'),
-                                     nn.LeakyReLU()))
+                                     nn.LeakyReLU(negative_slope=0.1)))
             if i > 0:
                 self.rcnn.append(RCNNBlock(h_dim))
             in_channels = h_dim
@@ -186,7 +186,7 @@ class RAE(nn.Module):
             self.decoder_conv.append(nn.Sequential(
                                      nn.Conv2d(in_channels, out_channels=h_dim, 
                                                kernel_size=3, padding='same'),
-                                     nn.LeakyReLU()))
+                                     nn.LeakyReLU(negative_slope=0.1)))
             in_channels = h_dim
         
         self.decoder_conv = nn.ModuleList(self.decoder_conv)

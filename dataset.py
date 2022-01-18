@@ -55,7 +55,7 @@ class RAEDataset(Dataset):
 
         scene_paths = list(self.root.glob('*'))
         self.scenes = [str(path).split('/')[-1] for path in scene_paths]
-        self.frames_per_scene = 250
+        self.frames_per_scene = 200
         self.num_noisy_image = 5
         self.sequence_length = sequence_length
         self.channels = ['R', 'G', 'B'] + self.aux_features
