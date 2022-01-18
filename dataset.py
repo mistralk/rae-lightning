@@ -73,7 +73,7 @@ class RAEDataset(Dataset):
                 'target_sequence': []
                 }
 
-        # albedos = ['albedo.R', 'albedo.G', 'albedo.B']
+        #albedos = ['albedo.R', 'albedo.G', 'albedo.B']
     
         start_frame = int(self.data[idx].name.split('-')[-1])
         noise_frame_k = np.random.randint(0, self.num_noisy_image)
@@ -82,6 +82,9 @@ class RAEDataset(Dataset):
             path = f'{self.data[idx].parent}/frame-{str(i).rjust(4, "0")}'
 
             sample_img = exr_to_dict(f'{path}/noisy-{noise_frame_k}.exr', self.channels)
+            for channel in 'RGB':
+                sample_img[channel] = np.power(sample_img[channel], 0.2)
+        
             if 'depth.Z' in sample_img:
                 _numer = sample_img['depth.Z'] - sample_img['depth.Z'].min()
                 _denom = sample_img['depth.Z'].max() - sample_img['depth.Z'].min()
@@ -96,6 +99,8 @@ class RAEDataset(Dataset):
             sample_img = np.stack([sample_img[channel] for channel in self.channels])
 
             sample_target = exr_to_dict(f'{path}/target.exr', self.channels)
+            for channel in 'RGB':
+                sample_target[channel] = np.power(sample_target[channel], 0.2)
             #target_albedo = np.stack([sample_target[channel] for channel in albedos])
             #sample_target['R'] = sample_target['R'] / (target_albedo[0] + 0.00316)
             #sample_target['G'] = sample_target['G'] / (target_albedo[1] + 0.00316)
@@ -108,6 +113,7 @@ class RAEDataset(Dataset):
             i, j, h, w = transforms.RandomCrop.get_params(sample_img, (128, 128))
             sample_img = TF.crop(sample_img, i, j, h, w)
             sample_target = TF.crop(sample_target, i, j, h, w)
+
 
             data['img_sequence'].append(sample_img)
             data['target_sequence'].append(sample_target)

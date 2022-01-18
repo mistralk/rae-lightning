@@ -41,14 +41,10 @@ class RAEModel(pl.LightningModule):
         }
 
     def loss(self, denoised, target):
-        """
-        Spatial loss
-        """
+        """Spatial loss"""
         loss_s = F.l1_loss(denoised, target, reduction='none')
 
-        """
-        Gradient-domain loss
-        """
+        """Gradient-domain loss"""
         LoG_filter = self.LoG_filter.to(self.device)
         denoised_LoG = []
         target_LoG = []
@@ -59,9 +55,7 @@ class RAEModel(pl.LightningModule):
         target_LoG = torch.stack(target_LoG)
         loss_g = F.l1_loss(denoised_LoG, target_LoG, reduction='none')
 
-        """
-        Temporal loss
-        """
+        """Temporal loss"""
         denoised_dt = []
         target_dt = []
         denoised_dt.append(denoised[0] - denoised[0])
