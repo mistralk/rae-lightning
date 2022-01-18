@@ -82,8 +82,6 @@ class RAEDataset(Dataset):
             path = f'{self.data[idx].parent}/frame-{str(i).rjust(4, "0")}'
 
             sample_img = exr_to_dict(f'{path}/noisy-{noise_frame_k}.exr', self.channels)
-            for channel in 'RGB':
-                sample_img[channel] = np.power(sample_img[channel], 0.2)
         
             if 'depth.Z' in sample_img:
                 _numer = sample_img['depth.Z'] - sample_img['depth.Z'].min()
@@ -92,19 +90,39 @@ class RAEDataset(Dataset):
                     sample_img['depth.Z'] = 0
                 else:
                     sample_img['depth.Z'] = _numer / _denom
+            
             #img_albedo = np.stack([sample_img[channel] for channel in albedos])
             #sample_img['R'] = sample_img['R'] / (img_albedo[0] + 0.00316)
             #sample_img['G'] = sample_img['G'] / (img_albedo[1] + 0.00316)
             #sample_img['B'] = sample_img['B'] / (img_albedo[2] + 0.00316)
-            sample_img = np.stack([sample_img[channel] for channel in self.channels])
 
             sample_target = exr_to_dict(f'{path}/target.exr', self.channels)
+
             for channel in 'RGB':
+                sample_img[channel] = np.power(sample_img[channel], 0.2)
                 sample_target[channel] = np.power(sample_target[channel], 0.2)
+
+            
+            """ for testing noise-free g-buffer """
+            """
+            if 'depth.Z' in sample_target:
+                _numer = sample_target['depth.Z'] - sample_target['depth.Z'].min()
+                _denom = sample_target['depth.Z'].max() - sample_target['depth.Z'].min()
+                if _denom == 0:
+                    sample_target['depth.Z'] = 0
+                else:
+                    sample_target['depth.Z'] = _numer / _denom
+            sample_img['depth.Z'] = sample_target['depth.Z']
+            sample_img['normal.R'] = sample_target['normal.R']
+            sample_img['normal.G'] = sample_target['normal.G']
+            sample_img['normal.B'] = sample_target['normal.B']
+            """
             #target_albedo = np.stack([sample_target[channel] for channel in albedos])
             #sample_target['R'] = sample_target['R'] / (target_albedo[0] + 0.00316)
             #sample_target['G'] = sample_target['G'] / (target_albedo[1] + 0.00316)
             #sample_target['B'] = sample_target['B'] / (target_albedo[2] + 0.00316)
+
+            sample_img = np.stack([sample_img[channel] for channel in self.channels])
             sample_target = np.stack([sample_target[channel] for channel in 'RGB'])
             
             sample_img = torch.from_numpy(sample_img)

@@ -18,6 +18,13 @@ class RAEModel(pl.LightningModule):
         #self.model = RAE(in_channels, [32,32,43,57,57], [43,43,32,32,64])
         #self.model = RAE(in_channels, [32,32,43,57,76,101,135,135], [101,101,76,76,57,57,43,43,32,32,128,64])
         self.model = RAE(in_channels)
+
+        def _init_weight(submodule):
+            if isinstance(submodule, nn.Conv2d):
+                torch.nn.init.kaiming_uniform_(submodule.weight)
+
+        self.model.apply(_init_weight)
+
         self.loss_weights = [0.8, 0.1, 0.1]
         self.temporal_weights = [0.011, 0.044, 0.135, 0.325, 0.607, 0.882, 1.0]
         self.sequence_length = sequence_length
@@ -186,6 +193,7 @@ class RAE(nn.Module):
         self.decoder_conv = nn.ModuleList(self.decoder_conv)
         self.output = nn.Conv2d(in_channels, out_channels=3,
                                 kernel_size=3, padding='same')
+
 
     def encode(self, I, h: List[Tensor]):
         """
