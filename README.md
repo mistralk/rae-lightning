@@ -18,6 +18,12 @@ My code was tested only for offline path traced images, while the paper aims to 
 python train.py PATH_TO_DATASET --max_epochs MAX_EPOCHS --num_workers WORKERS
 ```
 
+### Inference
+
+```shell
+python inference.py PATH_TO_CHECKPOINT PATH_TO_SEQUENCE
+```
+
 ## Dataset structure
 
 - For training, you have to prepare a dataset generated via Monte Carlo path tracing.
@@ -66,6 +72,8 @@ Dataset root/
 ### Reconstructions (52 epochs)
 
 ![reconstructions](./imgs/recons52.png)
+
+![gif of a training scene](./imgs/out.gif)
 
 ## References
 

@@ -64,17 +64,10 @@ def train(
         trainer.fit(model, datamodule, ckpt_path=ckpt)
     else:
         trainer.fit(model, datamodule)
-        
+
     print('Training completes!')
 
     trainer.test(ckpt_path='best', datamodule=datamodule)
-
-
-def visualize_reconstruction(model, sequence):
-    model.eval()
-    with torch.no_grad():
-        denoised = model(sequence)
-    print_srgb(denoised)
 
 
 if __name__ == '__main__':
