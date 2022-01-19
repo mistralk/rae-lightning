@@ -7,45 +7,47 @@ import numpy as np
 import pathlib
 from typing import Optional
 from utils import *
+import os
 
 
 class RAEDataModule(LightningDataModule):
 
-    def __init__(self, data_dir, aux_features, seq_length, batch_size=16, patch_size=128):
+    def __init__(self, data_dir, aux_features, seq_length, batch_size=16, patch_size=128, num_workers=1):
         super().__init__()
         self.data_dir = data_dir
         self.aux_features = aux_features
         self.seq_length = seq_length
         self.batch_size = batch_size
         self.patch_size = patch_size
+        self.num_workers = num_workers
 
     def setup(self, stage: Optional[str]=None):
         if stage in (None, 'fit'):
-            dataset = RAEDataset(self.data_dir, self.aux_features, self.seq_length, self.patch_size)
+            dataset = RAEDataset(self.data_dir  + '/train', self.aux_features, self.seq_length, self.patch_size)
             num_train = int(len(dataset) * 0.9)
             num_valid = len(dataset) - num_train
             self.train, self.val = random_split(dataset, [num_train, num_valid])
 
         if stage in (None, 'test'):
-            self.test_dir = self.data_dir
+            self.test_dir = self.data_dir + '/test'
             self.test = RAEDataset(self.test_dir, self.aux_features, self.seq_length, self.patch_size)
         
         if stage in (None, 'predict'):
-            self.test = RAEDataset(self.data_dir, self.aux_features, self.seq_length, self.patch_size)
+            self.predict = RAEDataset(self.data_dir, self.aux_features, self.seq_length, self.patch_size)
 
         print('Dataset setup completes.')
 
     def train_dataloader(self):
-        return DataLoader(self.train, batch_size=self.batch_size, shuffle=True, num_workers=24)
+        return DataLoader(self.train, batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers)
 
     def val_dataloader(self):
-        return DataLoader(self.val, batch_size=self.batch_size, num_workers=24)
+        return DataLoader(self.val, batch_size=self.batch_size, num_workers=self.num_workers)
 
     def test_dataloader(self):
-        return DataLoader(self.test, batch_size=self.batch_size, num_workers=24)
+        return DataLoader(self.test, batch_size=self.batch_size, num_workers=self.num_workers)
 
     def predict_dataloader(self):
-        return DataLoader(self.predict, batch_size=self.batch_size, num_workers=24)
+        return DataLoader(self.predict, batch_size=self.batch_size, num_workers=self.num_workers)
 
 
 class RAEDataset(Dataset):
@@ -56,7 +58,7 @@ class RAEDataset(Dataset):
 
         scene_paths = list(self.root.glob('*'))
         self.scenes = [str(path).split('/')[-1] for path in scene_paths]
-        self.frames_per_scene = 100
+        # self.frames_per_scene = 100
         self.num_noisy_image = 5
         self.sequence_length = sequence_length
         self.channels = ['R', 'G', 'B'] + self.aux_features
@@ -64,9 +66,11 @@ class RAEDataset(Dataset):
 
         self.data = []
         for scene in self.scenes:
-            for frame_i in range(self.frames_per_scene - sequence_length + 1):
+            scene_path = self.root/scene
+            frames_per_scene = len(os.listdir(scene_path))
+            for frame_i in range(frames_per_scene - sequence_length + 1):
                 frame_name = 'frame-' + str(frame_i).rjust(4, '0')
-                path = self.root/scene/frame_name
+                path = scene_path/frame_name
                 self.data.append(path)
     
     # get a sequence [idx, idx + length)
@@ -84,15 +88,7 @@ class RAEDataset(Dataset):
             path = f'{self.data[idx].parent}/frame-{str(i).rjust(4, "0")}'
 
             sample_img = exr_to_dict(f'{path}/noisy-{noise_frame_k}.exr', self.channels)
-        
-            if 'depth.Z' in sample_img:
-                _numer = sample_img['depth.Z'] - sample_img['depth.Z'].min()
-                _denom = sample_img['depth.Z'].max() - sample_img['depth.Z'].min()
-                if _denom == 0:
-                    sample_img['depth.Z'] = 0
-                else:
-                    sample_img['depth.Z'] = _numer / _denom
-            
+
             #img_albedo = np.stack([sample_img[channel] for channel in albedos])
             #sample_img['R'] = sample_img['R'] / (img_albedo[0] + 0.00316)
             #sample_img['G'] = sample_img['G'] / (img_albedo[1] + 0.00316)
@@ -104,8 +100,13 @@ class RAEDataset(Dataset):
                 sample_img[channel] = np.power(sample_img[channel], 0.2)
                 sample_target[channel] = np.power(sample_target[channel], 0.2)
 
+            """
+            The paper assumes that G-Buffer is noise-free(rasterized).
+            However I've rendered a dataset using offline path tracer, for prototyping.
+            As a result, 1-spp G-Buffers are too noisy to use for training.
             
-            """ for testing noise-free g-buffer """
+            Thus I regard and use target image's G-Buffer as "noise-free" input G-Buffer.
+            To do so, noisy input G-Buffers are replaced with them. (below lines)
             """
             if 'depth.Z' in sample_target:
                 _numer = sample_target['depth.Z'] - sample_target['depth.Z'].min()
@@ -118,7 +119,7 @@ class RAEDataset(Dataset):
             sample_img['normal.R'] = sample_target['normal.R']
             sample_img['normal.G'] = sample_target['normal.G']
             sample_img['normal.B'] = sample_target['normal.B']
-            """
+
             #target_albedo = np.stack([sample_target[channel] for channel in albedos])
             #sample_target['R'] = sample_target['R'] / (target_albedo[0] + 0.00316)
             #sample_target['G'] = sample_target['G'] / (target_albedo[1] + 0.00316)

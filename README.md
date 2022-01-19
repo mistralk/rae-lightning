@@ -1,8 +1,8 @@
 # Recurrent Denoising Autoencoder - PyTorch Lightning
 
-A PyTorch Lightning implementation of [Interactive Reconstruction of Monte Carlo Image Sequences using a Recurrent Denoising Autoencoder](https://research.nvidia.com/publication/interactive-reconstruction-monte-carlo-image-sequences-using-recurrent-denoising)(2017), for study purposes. This repository is not official implementation. Also, some features in the original paper have not implemented.
+A PyTorch Lightning implementation of [Interactive Reconstruction of Monte Carlo Image Sequences using a Recurrent Denoising Autoencoder](https://research.nvidia.com/publication/interactive-reconstruction-monte-carlo-image-sequences-using-recurrent-denoising)(2017), for study purposes. This repository is not official implementation. Also, some features in the original paper have not implemented (e.g., albedo demodulation).
 
-
+My code was tested only for offline path traced images, while the paper aims to denoise at real-time rate.
 
 ## Prerequisites
 
@@ -15,42 +15,57 @@ A PyTorch Lightning implementation of [Interactive Reconstruction of Monte Carlo
 ### Training
 
 ```shell
-python train.py PATH_TO_TRAIN_SET_ROOT
+python train.py PATH_TO_DATASET --max_epochs MAX_EPOCHS --num_workers WORKERS
 ```
 
 ## Dataset structure
 
 - For training, you have to prepare a dataset generated via Monte Carlo path tracing.
 - Each input EXR file should contain 7 channels: R/G/B, depth, world-space shading normal x/y/z
-- However, you can change input buffer definition(e.g., same as the original paper's description) by modifying the script.
+- You can change input buffer definition by modifying the script.
 
 ```shell
 Dataset root/
-├─ Scene A/
-│  ├─ frame-0000/
-│  │  ├─ target.exr (High-SPP target image)
-│  │  ├─ noisy-0.exr (1-SPP noisy image by a different random seed)
-│  │  ├─ noisy-1.exr
-│  │  ├─ noisy-2.exr
-│  │  ├─ noisy-3.exr
-│  │  └─ noisy-4.exr
-│  │  
-│  ├─ frame-0001/
-│  ├─ ...
-│  └─ frame-####/
+├─ train/
+│  ├─ Scene A/
+│  │  ├─ frame-0000/
+│  │  │  ├─ target.exr (High-SPP target image)
+│  │  │  ├─ noisy-0.exr (Input image by different random seeds)
+│  │  │  ├─ noisy-1.exr
+│  │  │  ├─ noisy-2.exr
+│  │  │  ├─ noisy-3.exr
+│  │  │  └─ noisy-4.exr
+│  │  │   
+│  │  ├─ frame-0001/
+│  │  ├─ ...
+│  │  └─ frame-####/
+│  │
+│  ├─ Scene B/
+│  └─ ...
 │
-├─ Scene B/
-└─ ...
+└─ test/
 ```
 
 
-## Results
+## Result of an initial experiment
 
-## Differences from the original paper
+### Training set
+- 5 scene (bathroom, bedroom, kitchen, livingroom2, staircase2) from [Benedikt Bitterli's rendering resources](https://benedikt-bitterli.me/resources/)
+- Avg. 183 frames per scene
+- Input: 1-spp noisy RGB images(and 1500-spp G-Buffers) rendered by [Tungsten](https://github.com/tunabrain/tungsten)
+- Target: 1500-spp images rendered by [Tungsten](https://github.com/tunabrain/tungsten)
 
-- [ ] Using noise-free G-Buffer by rasterization
-- [ ] Using view-space shading normals for G-Buffer : currently the network uses the world-space one.
-- [ ] Albedo demodulation for denoising and re-modulation for final rendering
+### Input RGB
+
+![inputs](./imgs/input52.png)
+
+### Target
+
+![targets](./imgs/target52.png)
+
+### Reconstructions (52 epochs)
+
+![reconstructions](./imgs/recons52.png)
 
 ## References
 

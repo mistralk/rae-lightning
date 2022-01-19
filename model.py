@@ -6,7 +6,7 @@ import pytorch_lightning as pl
 import torchvision
 from utils import *
 from typing import List, Optional, Sequence, Tuple, Any, Callable
-from piq import ssim
+#from piq import ssim
 
 
 class RAEModel(pl.LightningModule):
@@ -139,16 +139,16 @@ class RAEModel(pl.LightningModule):
         #self.log(f'{prefix}_SSIM', ssim_loss)
 
         grid_input = torchvision.utils.make_grid(x[-1][:,:3,:], normalize=True, nrow=10)
-        recon = torch.stack([
-            torchvision.utils.make_grid(recons[0], normalize=True, nrow=10),
-            torchvision.utils.make_grid(recons[1], normalize=True, nrow=10),
-            torchvision.utils.make_grid(recons[2], normalize=True, nrow=10),
-            torchvision.utils.make_grid(recons[3], normalize=True, nrow=10),
-            torchvision.utils.make_grid(recons[4], normalize=True, nrow=10),
-            torchvision.utils.make_grid(recons[5], normalize=True, nrow=10),
-            torchvision.utils.make_grid(recons[6], normalize=True, nrow=10)
+        recon_seq = torch.stack([
+            torchvision.utils.make_grid(recons[0], nrow=10),
+            torchvision.utils.make_grid(recons[1], nrow=10),
+            torchvision.utils.make_grid(recons[2], nrow=10),
+            torchvision.utils.make_grid(recons[3], nrow=10),
+            torchvision.utils.make_grid(recons[4], nrow=10),
+            torchvision.utils.make_grid(recons[5], nrow=10),
+            torchvision.utils.make_grid(recons[6], nrow=10)
         ])
-        grid_recon = torchvision.utils.make_grid(recon, nrow=1)
+        grid_recon = torchvision.utils.make_grid(recon_seq, normalize=True, nrow=1)
         grid_target = torchvision.utils.make_grid(target[-1], normalize=True, nrow=10)
 
         self.logger.experiment.add_image('input', grid_input)
