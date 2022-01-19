@@ -31,8 +31,8 @@ def train(
     #torchinfo.summary(model, (16, 3 + len(aux_features), 128, 128))
 
     logger = TensorBoardLogger('tb_logs', name='rae')
-    trainer = Trainer(gpus=1, max_epochs=3, log_every_n_steps=1, logger=logger)
-    #trainer.fit(model, datamodule, ckpt_path='tb_logs/rae/version_62/checkpoints/epoch=29-step=659.ckpt')
+    trainer = Trainer(gpus=1, max_epochs=1, log_every_n_steps=1, logger=logger)
+    #trainer.fit(model, datamodule, ckpt_path='tb_logs/rae/version_16/checkpoints/epoch=2-step=158.ckpt')
     trainer.fit(model, datamodule)
     print('Training completes!')
 

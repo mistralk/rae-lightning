@@ -138,9 +138,19 @@ class RAEModel(pl.LightningModule):
         #                 torch.tensor(hdr_normalize(target[0].cpu())))
         #self.log(f'{prefix}_SSIM', ssim_loss)
 
-        grid_recon = torchvision.utils.make_grid(denoised)
-        grid_input = torchvision.utils.make_grid(x[-1][:,:3,:])
-        grid_target = torchvision.utils.make_grid(target[-1])
+        grid_input = torchvision.utils.make_grid(x[-1][:,:3,:], normalize=True, nrow=10)
+        recon = torch.stack([
+            torchvision.utils.make_grid(recons[0], normalize=True, nrow=10),
+            torchvision.utils.make_grid(recons[1], normalize=True, nrow=10),
+            torchvision.utils.make_grid(recons[2], normalize=True, nrow=10),
+            torchvision.utils.make_grid(recons[3], normalize=True, nrow=10),
+            torchvision.utils.make_grid(recons[4], normalize=True, nrow=10),
+            torchvision.utils.make_grid(recons[5], normalize=True, nrow=10),
+            torchvision.utils.make_grid(recons[6], normalize=True, nrow=10)
+        ])
+        grid_recon = torchvision.utils.make_grid(recon, nrow=1)
+        grid_target = torchvision.utils.make_grid(target[-1], normalize=True, nrow=10)
+
         self.logger.experiment.add_image('input', grid_input)
         self.logger.experiment.add_image('reconstructed', grid_recon)
         self.logger.experiment.add_image('target', grid_target)

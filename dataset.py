@@ -11,31 +11,32 @@ from utils import *
 
 class RAEDataModule(LightningDataModule):
 
-    def __init__(self, data_dir, aux_features, seq_length, batch_size=16):
+    def __init__(self, data_dir, aux_features, seq_length, batch_size=16, patch_size=128):
         super().__init__()
         self.data_dir = data_dir
         self.aux_features = aux_features
         self.seq_length = seq_length
         self.batch_size = batch_size
+        self.patch_size = patch_size
 
     def setup(self, stage: Optional[str]=None):
         if stage in (None, 'fit'):
-            dataset = RAEDataset(self.data_dir, self.aux_features, self.seq_length)
+            dataset = RAEDataset(self.data_dir, self.aux_features, self.seq_length, self.patch_size)
             num_train = int(len(dataset) * 0.9)
             num_valid = len(dataset) - num_train
             self.train, self.val = random_split(dataset, [num_train, num_valid])
 
         if stage in (None, 'test'):
             self.test_dir = self.data_dir
-            self.test = RAEDataset(self.test_dir, self.aux_features, self.seq_length)
+            self.test = RAEDataset(self.test_dir, self.aux_features, self.seq_length, self.patch_size)
         
         if stage in (None, 'predict'):
-            self.test = RAEDataset(self.data_dir, self.aux_features, self.seq_length)
+            self.test = RAEDataset(self.data_dir, self.aux_features, self.seq_length, self.patch_size)
 
         print('Dataset setup completes.')
 
     def train_dataloader(self):
-        return DataLoader(self.train, batch_size=self.batch_size, num_workers=24)
+        return DataLoader(self.train, batch_size=self.batch_size, shuffle=True, num_workers=24)
 
     def val_dataloader(self):
         return DataLoader(self.val, batch_size=self.batch_size, num_workers=24)
@@ -49,16 +50,17 @@ class RAEDataModule(LightningDataModule):
 
 class RAEDataset(Dataset):
 
-    def __init__(self, root, aux_features, sequence_length):
+    def __init__(self, root, aux_features, sequence_length, patch_size=128):
         self.root = pathlib.Path(root)
         self.aux_features = aux_features
 
         scene_paths = list(self.root.glob('*'))
         self.scenes = [str(path).split('/')[-1] for path in scene_paths]
-        self.frames_per_scene = 200
+        self.frames_per_scene = 100
         self.num_noisy_image = 5
         self.sequence_length = sequence_length
         self.channels = ['R', 'G', 'B'] + self.aux_features
+        self.patch_size = patch_size
 
         self.data = []
         for scene in self.scenes:
@@ -124,14 +126,18 @@ class RAEDataset(Dataset):
 
             sample_img = np.stack([sample_img[channel] for channel in self.channels])
             sample_target = np.stack([sample_target[channel] for channel in 'RGB'])
+
+            if i == start_frame:
+                res_w = sample_img.shape[-1]
+                res_h = sample_img.shape[-2]
+                top = np.random.randint(0, res_h - self.patch_size)
+                left = np.random.randint(0, res_w - self.patch_size)
             
             sample_img = torch.from_numpy(sample_img)
             sample_target = torch.from_numpy(sample_target)
 
-            i, j, h, w = transforms.RandomCrop.get_params(sample_img, (128, 128))
-            sample_img = TF.crop(sample_img, i, j, h, w)
-            sample_target = TF.crop(sample_target, i, j, h, w)
-
+            sample_img = TF.crop(sample_img, top, left, self.patch_size, self.patch_size)
+            sample_target = TF.crop(sample_target, top, left, self.patch_size, self.patch_size)
 
             data['img_sequence'].append(sample_img)
             data['target_sequence'].append(sample_target)
