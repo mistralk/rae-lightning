@@ -1,5 +1,7 @@
 # Recurrent Denoising Autoencoder - PyTorch Lightning
 
+![before and after](./imgs/out.gif)
+
 A PyTorch Lightning implementation of [Interactive Reconstruction of Monte Carlo Image Sequences using a Recurrent Denoising Autoencoder](https://research.nvidia.com/publication/interactive-reconstruction-monte-carlo-image-sequences-using-recurrent-denoising)(2017), for study purposes. This repository is not official implementation. Also, some features in the original paper have not implemented (e.g., albedo demodulation).
 
 My code was tested only for offline path traced images, while the paper aims to denoise at real-time rate.
@@ -72,8 +74,6 @@ Dataset root/
 ### Reconstructions (52 epochs)
 
 ![reconstructions](./imgs/recons52.png)
-
-![gif of a training scene](./imgs/out.gif)
 
 ## References
 

@@ -1,5 +1,7 @@
 import click
 import os
+
+from importlib_metadata import zipp
 from model import *
 from dataset import *
 from utils import *
@@ -30,7 +32,7 @@ def inference(
 
     with torch.no_grad():
         x = torch.tensor(seq, device=device).unsqueeze(dim=1)
-        recons = []
+        out = []
 
         for i in range(x.shape[0]):
             if i == 0:
@@ -38,15 +40,25 @@ def inference(
             else:
                 denoised, hidden = model(x[i], hidden)
 
-            d = denoised[0]
-            d = (d - d.min())/(d.max() - d.min())
-            d = torch.pow(d, 1/0.2)
-            d = torch.pow(d, 1.0/10) * 255
-            d = d.cpu().numpy().transpose((1, 2, 0)).astype(np.uint8)
-            recons.append(Image.fromarray(d))
-            # recons[i].save(f'{i}.png')
+            recon = tensor_to_rgb8(denoised[0])
+            out.append(Image.fromarray(recon))
 
-    recons[0].save('./out.gif', format='gif', save_all=True, append_images=recons[1:], duration=100, loop=0)
+            """printing before & after"""
+            # noisy = tensor_to_rgb8(x[i][0][0:3])
+            # width = noisy.shape[0]
+            # concatenated = Image.new('RGB', (width + width, width))
+            # concatenated.paste(Image.fromarray(noisy), (0,0))
+            # concatenated.paste(Image.fromarray(recon), (width,0))
+            #out.append(concatenated)
+
+    out[0].save('./out.gif', format='gif', save_all=True, append_images=out[1:], duration=100, loop=0)
+
+def tensor_to_rgb8(t):
+    t = (t - t.min())/(t.max() - t.min())
+    t = torch.pow(t, 1/0.2)
+    t = torch.pow(t, 1.0/7) * 255
+    t = t.cpu().numpy().transpose((1, 2, 0)).astype(np.uint8)
+    return t
 
 def load_sequence(path, aux_features):
     frame_names = sorted(os.listdir(path))
@@ -78,7 +90,6 @@ def load_sequence(path, aux_features):
         seq.append(img)
     
     return np.stack(seq)
-
 
 if __name__ == '__main__':
     inference()
